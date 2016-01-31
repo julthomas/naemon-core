@@ -14,8 +14,6 @@
 # Required-Stop:     $local_fs $remote_fs $syslog $network
 # Should-Start:
 # Should-Stop:
-# Default-Start:     3 5
-# Default-Stop:      0 1 2 6
 # Short-Description: start and stop Naemon monitoring server
 # Description:       Naemon is is a service monitoring system
 ### END INIT INFO
