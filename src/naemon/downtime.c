@@ -188,6 +188,19 @@ static void downtime_remove(scheduled_downtime *dt)
 	}
 }
 
+static inline void log_downtime_event(scheduled_downtime *dt, const char *event)
+{
+	if (dt->type == HOST_DOWNTIME)
+		nm_log(NSLOG_INFO_MESSAGE,
+		       "HOST DOWNTIME EVENT: %lu;%lu;%s;%lu;%lu;%lu;%d;%s;%s;%s",
+		       dt->downtime_id, dt->entry_time, dt->host_name, dt->start_time, dt->end_time, dt->duration,
+		       dt->fixed, event, dt->author ? dt->author : "", dt->comment ? dt->comment : "");
+	else
+		nm_log(NSLOG_INFO_MESSAGE,
+		       "SERVICE DOWNTIME EVENT: %lu;%lu;%s;%s;%lu;%lu;%lu;%d;%s;%s;%s",
+		       dt->downtime_id, dt->entry_time, dt->host_name, dt->service_description, dt->start_time, dt->end_time, dt->duration,
+		       dt->fixed, event, dt->author ? dt->author : "", dt->comment ? dt->comment : "");
+}
 
 /******************************************************************/
 /**************** INITIALIZATION/CLEANUP FUNCTIONS ****************/
@@ -320,6 +333,8 @@ int unschedule_downtime(int type, unsigned long downtime_id)
 		if ((svc = find_service(temp_downtime->host_name, temp_downtime->service_description)) == NULL)
 			return ERROR;
 	}
+
+	log_downtime_event(temp_downtime, "CANCELLED");
 
 	log_debug_info(DEBUGL_DOWNTIME, 0, "Cancelling %s downtime (id=%lu)\n",
 	               temp_downtime->type == HOST_DOWNTIME ? "host" : "service",
@@ -535,6 +550,8 @@ int register_downtime(int type, unsigned long downtime_id)
 
 	}
 
+	log_downtime_event(temp_downtime, "SCHEDULED");
+
 	return OK;
 }
 
@@ -647,6 +664,7 @@ static int handle_scheduled_downtime_stop(scheduled_downtime *temp_downtime)
 	}
 
 	temp_downtime->is_in_effect = FALSE;
+	log_downtime_event(temp_downtime, "STOPPED");
 
 	/* delete downtime entry */
 	if (temp_downtime->type == HOST_DOWNTIME)
@@ -721,6 +739,7 @@ static int handle_scheduled_downtime_start(scheduled_downtime *temp_downtime)
 
 	/* set the in effect flag */
 	temp_downtime->is_in_effect = TRUE;
+	log_downtime_event(temp_downtime, "STARTED");
 
 	/* update the status data */
 	if (temp_downtime->type == HOST_DOWNTIME)
