@@ -999,9 +999,7 @@ static int xod_sort_compare_servicedependency_template(const void *a, const void
 	if (ob == NULL)
 		return -1;
 
-	if ((val = safestrcmp(oa->host_name, ob->host_name)))
-		return val;
-	return safestrcmp(oa->service_description, ob->service_description);
+	return safestrcmp(oa->name, ob->name);
 }
 
 static int xod_sort_compare_hostescalation_template(const void *a, const void *b)
