@@ -86,6 +86,21 @@ typedef enum {
  * */
 #define COMMAND_SYNTAX_NOKV (1 << 2)
 
+/**
+ * Shortcut all COMMAND_SYNTAX_* flags on.
+ */
+#define COMMAND_SYNTAX_MASK (COMMAND_SYNTAX_NOKV|COMMAND_SYNTAX_KV)
+
+/**
+ * When set, this flag indicates the command was issued from an old style
+ * interface: either the command fifo/pipe or a file processed via the
+ * PROCESS_FILE command. In that case commands are single line based using
+ * the COMMAND_SYNTAX_NOKV syntax. The goal of this flag is to maintain \\
+ * and \n escaping in plugin_output (passive checks commands) for compatibility
+ * with Nagios.
+ */
+#define COMMAND_INTERFACE_OLD_STYLE (1 << 3)
+
 
 typedef int (*arg_validator_fn)(void *value);
 

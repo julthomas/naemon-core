@@ -250,7 +250,7 @@ static int command_input_handler(int sd, int events, void *discard)
 			/* raw external command */
 			log_debug_info(DEBUGL_COMMANDS, 1, "Read raw external command '%s'\n", buf);
 		}
-		if ((cmd_ret = process_external_command(buf, COMMAND_SYNTAX_NOKV, &error)) != CMD_ERROR_OK) {
+		if ((cmd_ret = process_external_command(buf, COMMAND_SYNTAX_NOKV|COMMAND_INTERFACE_OLD_STYLE, &error)) != CMD_ERROR_OK) {
 			nm_log(NSLOG_EXTERNAL_COMMAND | NSLOG_RUNTIME_WARNING, "External command error: %s\n", error->message);
 		}
 		free(buf);
@@ -426,6 +426,7 @@ struct external_command
 	int argc;
 	char *description;
 	char *raw_arguments;
+	int mode;
 };
 
 struct external_command_with_result {
@@ -459,6 +460,30 @@ static size_t type_sz(arg_t type) {
 		case ULONG: return sizeof(unsigned long);
 		default: return -1;
 	}
+}
+
+static void unescape_plugin_output(char *buf)
+{
+	int x = 0;
+	int y = 0;
+
+	if (buf == NULL)
+		return;
+
+	for (x = 0, y = 0; buf[x]; x++) {
+		if (buf[x] == '\\' && buf[x + 1] == '\\') {
+			x++;
+			buf[y++] = buf[x];
+		}
+		else if (buf[x] == '\\' && buf[x + 1] == 'n') {
+			x++;
+			buf[y++] = '\n';
+		}
+		else
+			buf[y++] = buf[x];
+	}
+
+	buf[y] = '\0';
 }
 
 static const char * arg_t2str(arg_t type)
@@ -630,6 +655,7 @@ static struct external_command * external_command_copy(struct external_command *
 	}
 	copy->description = nm_strdup(ext_command->description);
 	copy->raw_arguments = ext_command ->raw_arguments ? nm_strdup(ext_command->raw_arguments) : NULL;
+	copy->mode = ext_command->mode;
 	return copy;
 
 }
@@ -1205,7 +1231,7 @@ struct external_command /*@null@*/ * command_parse(const char * cmdstr, int mode
 	struct external_command * ext_command;
 	ext_command = NULL;
 	*error = NULL;
-	while ((!ext_command) && mode > 0) {
+	while ((!ext_command) && (mode & COMMAND_SYNTAX_MASK) > 0) {
 		if (COMMAND_SYNTAX_NOKV & mode) {
 			ext_command = parse_nokv_command(cmdstr, &parse_error);
 			mode ^= COMMAND_SYNTAX_NOKV;
@@ -1223,20 +1249,26 @@ struct external_command /*@null@*/ * command_parse(const char * cmdstr, int mode
 			return NULL;
 		}
 	}
-	if (ext_command == NULL && parse_error == NULL) {
-		g_set_error(
-			error,
-			NM_COMMAND_ERROR,
-			CMD_ERROR_INTERNAL_ERROR,
-			"Error: No command parsed but no error code set in %s - this is a bug, please report it", __func__);
-	}
 
-	if (ext_command != NULL && parse_error && !g_error_matches(parse_error, NM_COMMAND_ERROR, CMD_ERROR_CUSTOM_COMMAND)) {
-		g_set_error(
-			error,
-			NM_COMMAND_ERROR,
-			CMD_ERROR_INTERNAL_ERROR,
-			"Error: Command parsed but error code set in %s - this is a bug, please report it", __func__);
+	if (ext_command == NULL) {
+		if (parse_error == NULL) {
+			g_set_error(
+				error,
+				NM_COMMAND_ERROR,
+				CMD_ERROR_INTERNAL_ERROR,
+				"Error: No command parsed but no error code set in %s - this is a bug, please report it", __func__);
+		}
+	}
+	else {
+		ext_command->mode = mode;
+
+		if (parse_error && !g_error_matches(parse_error, NM_COMMAND_ERROR, CMD_ERROR_CUSTOM_COMMAND)) {
+			g_set_error(
+				error,
+				NM_COMMAND_ERROR,
+				CMD_ERROR_INTERNAL_ERROR,
+				"Error: Command parsed but error code set in %s - this is a bug, please report it", __func__);
+		}
 	}
 
 	if (parse_error)
@@ -1466,6 +1498,7 @@ struct external_command /*@null@*/ * command_create(char *cmd, ext_command_handl
 		ext_command->argc = 0;
 		ext_command->description = nm_strdup(description);
 		ext_command->raw_arguments = NULL;
+		ext_command->mode = 0;
 	}
 	else {
 		nm_log(NSLOG_RUNTIME_WARNING, "Warning: Null parameter passed to %s for %s", __func__, cmd ? cmd : "unknown command");
@@ -1841,6 +1874,7 @@ static int host_command_handler(const struct external_command *ext_command, time
 	service *service_p = NULL;
 	unsigned long downtime_id = 0L;
 	unsigned long duration = 0L;
+	char *plugin_output = NULL;
 	time_t old_interval = 0L;
 
 	if ( ext_command->id != CMD_DEL_HOST_COMMENT)
@@ -1967,7 +2001,10 @@ static int host_command_handler(const struct external_command *ext_command, time
 			}
 			return OK;
 		case CMD_PROCESS_HOST_CHECK_RESULT:
-			return process_passive_host_check(entry_time /*entry time as check time*/, target_host->name, GV_INT("status_code"), GV("plugin_output"));
+			plugin_output = GV("plugin_output");
+			if ((ext_command->mode & COMMAND_INTERFACE_OLD_STYLE))
+				unescape_plugin_output(plugin_output);
+			return process_passive_host_check(entry_time /*entry time as check time*/, target_host->name, GV_INT("status_code"), plugin_output);
 		case CMD_ENABLE_PASSIVE_HOST_CHECKS:
 			enable_passive_host_checks(target_host);
 			return OK;
@@ -2248,6 +2285,7 @@ static int hostgroup_command_handler(const struct external_command *ext_command,
 static int service_command_handler(const struct external_command *ext_command, time_t entry_time)
 {
 	struct service *target_service = NULL;
+	char *plugin_output = NULL;
 	unsigned long downtime_id = 0L;
 	time_t old_interval = 0L;
 
@@ -2285,7 +2323,10 @@ static int service_command_handler(const struct external_command *ext_command, t
 			disable_service_notifications(target_service);
 			return OK;
 		case CMD_PROCESS_SERVICE_CHECK_RESULT:
-			return process_passive_service_check(entry_time /*entry time as check time*/, target_service->host_name, target_service->description, GV_INT("status_code"), GV("plugin_output"));
+			plugin_output = GV("plugin_output");
+			if ((ext_command->mode & COMMAND_INTERFACE_OLD_STYLE))
+				unescape_plugin_output(plugin_output);
+			return process_passive_service_check(entry_time /*entry time as check time*/, target_service->host_name, target_service->description, GV_INT("status_code"), plugin_output);
 		case CMD_ACKNOWLEDGE_SVC_PROBLEM:
 			acknowledge_service_problem(target_service, GV("author"), GV("comment"), GV_INT("sticky"), GV_BOOL("notify"), GV_BOOL("persistent"));
 			return OK;
@@ -3331,7 +3372,7 @@ int process_external_commands_from_file(char *fname, int delete_file)
 			break;
 
 		/* process the command */
-		if ((cmd_ret = process_external_command(input, COMMAND_SYNTAX_NOKV, &error)) != CMD_ERROR_OK) {
+		if ((cmd_ret = process_external_command(input, COMMAND_SYNTAX_NOKV|COMMAND_INTERFACE_OLD_STYLE, &error)) != CMD_ERROR_OK) {
 			nm_log(NSLOG_EXTERNAL_COMMAND | NSLOG_RUNTIME_WARNING, "External command from file error: %s\n", error->message);
 		}
 	}
