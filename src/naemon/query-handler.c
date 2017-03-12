@@ -361,7 +361,7 @@ static int qh_command(int sd, char *buf, unsigned int len)
 		* (space++) = 0;
 	if (space) {
 		if (!strcmp(buf, "run")) {
-			int res = process_external_command1(space);
+			int res = process_external_command1(space, 0);
 			if (res == OK) {
 				return 200;
 			} else {

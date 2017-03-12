@@ -84,6 +84,21 @@ const char *cmd_error_strerror(int error_code);
  * */
 #define COMMAND_SYNTAX_NOKV (1 << 2)
 
+/**
+ * Shortcut all COMMAND_SYNTAX_* flags on.
+ */
+#define COMMAND_SYNTAX_MASK (COMMAND_SYNTAX_NOKV|COMMAND_SYNTAX_KV)
+
+/**
+ * When set, this flag indicates the command was issued from an old style
+ * interface: either the command fifo/pipe or a file processed via the
+ * PROCESS_FILE command. In that case commands are single line based using
+ * the COMMAND_SYNTAX_NOKV syntax. The goal of this flag is to maintain \\
+ * and \n escaping in plugin_output (passive checks commands) for compatibility
+ * with Nagios.
+ */
+#define COMMAND_INTERFACE_OLD_STYLE (1 << 3)
+
 
 typedef int (*arg_validator_fn)(void *value);
 
@@ -205,7 +220,7 @@ const char *command_name(const struct external_command * command);
 int open_command_file(void);					/* creates the external command file as a named pipe (FIFO) and opens it for reading */
 int close_command_file(void);					/* closes and deletes the external command file (FIFO) */
 
-int process_external_command1(char *);                  /* top-level external command processor */
+int process_external_command1(char *, int);             /* top-level external command processor */
 int process_external_command2(int cmd, time_t entry_time, char *args);  /* DEPRECATED: for backwards NEB compatibility only */
 int process_external_commands_from_file(char *, int);   /* process external commands in a file */
 
