@@ -43,6 +43,7 @@ void free_memory(nagios_macros *mac);                              	/* free memo
 int reset_variables(void);                           	/* reset all global variables */
 
 void sighandler(int);                                	/* handles signals */
+char *escape_newlines(char *);
 int my_rename(char *, char *);                          /* renames a file */
 
 time_t get_next_log_rotation_time(void);	     	/* determine the next time to schedule a log rotation */

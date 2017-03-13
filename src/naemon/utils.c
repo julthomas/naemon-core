@@ -597,6 +597,43 @@ int daemon_init(void)
 }
 
 /******************************************************************/
+/************************ STRING FUNCTIONS ************************/
+/******************************************************************/
+
+/* escapes newlines in a string */
+char *escape_newlines(char *rawbuf)
+{
+	char *newbuf = NULL;
+	register int x, y;
+
+	if (rawbuf == NULL)
+		return NULL;
+
+	/* allocate enough memory to escape all chars if necessary */
+	newbuf = nm_malloc((strlen(rawbuf) * 2) + 1);
+	for (x = 0, y = 0; rawbuf[x] != (char)'\x0'; x++) {
+
+		/* escape backslashes */
+		if (rawbuf[x] == '\\') {
+			newbuf[y++] = '\\';
+			newbuf[y++] = '\\';
+		}
+
+		/* escape newlines */
+		else if (rawbuf[x] == '\n') {
+			newbuf[y++] = '\\';
+			newbuf[y++] = 'n';
+		}
+
+		else
+			newbuf[y++] = rawbuf[x];
+	}
+	newbuf[y] = '\x0';
+
+	return newbuf;
+}
+
+/******************************************************************/
 /************************* FILE FUNCTIONS *************************/
 /******************************************************************/
 
