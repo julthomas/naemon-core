@@ -2926,9 +2926,21 @@ int parse_check_output(char *buf, char **short_output, char **long_output, char 
 	struct check_output *check_output = nm_malloc(sizeof(struct check_output));
 	check_output = parse_output(buf, check_output);
 	*short_output = check_output->short_output;
-	*long_output = check_output->long_output;
 	*perf_data = check_output->perf_data;
-	free(check_output);
+
+    /* The <newlines_are_escaped> argument is not used in Naemon
+     * because everything is always unescaped when <buf> gets passed
+     * to this function. */
+
+	if (escape_newlines_please && check_output->long_output && *check_output->long_output) {
+		*long_output = escape_newlines(check_output->long_output);
+		nm_free(check_output->long_output);
+	}
+	else {
+		*long_output = check_output->long_output;
+	}
+
+	nm_free(check_output);
 	strip(*short_output);
 	strip(*perf_data);
 	return OK;
