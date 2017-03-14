@@ -405,6 +405,14 @@ int handle_async_service_check_result(service *temp_service, check_result *queue
 		return OK;
 	}
 
+	/* FIXME:
+	 * Check latency is set on the service in run_scheduled_service_check,
+	 * so only for active checks but we want a value on passive checks as well
+	 * with the same meaning as with Nagios. The latency is available in
+	 * the <queued_check_result> data, re-update it... but we know that
+	 * something is not right here... */
+	temp_service->latency = queued_check_result->latency;
+
 	/* update the execution time for this check (millisecond resolution) */
 	temp_service->execution_time = (double)((double)(queued_check_result->finish_time.tv_sec - queued_check_result->start_time.tv_sec) + (double)((queued_check_result->finish_time.tv_usec - queued_check_result->start_time.tv_usec) / 1000.0) / 1000.0);
 	if (temp_service->execution_time < 0.0)
