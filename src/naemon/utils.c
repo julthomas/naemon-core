@@ -102,6 +102,7 @@ int check_service_freshness = DEFAULT_CHECK_SERVICE_FRESHNESS;
 int check_host_freshness = DEFAULT_CHECK_HOST_FRESHNESS;
 
 int additional_freshness_latency = DEFAULT_ADDITIONAL_FRESHNESS_LATENCY;
+int delay_freshness_checks_after_program_start = DEFAULT_DELAY_FRESHNESS_CHECKS_AFTER_PROGRAM_START;
 
 time_t last_program_stop = 0L;
 
@@ -3033,6 +3034,7 @@ int reset_variables(void)
 	child_processes_fork_twice = FALSE;
 
 	additional_freshness_latency = DEFAULT_ADDITIONAL_FRESHNESS_LATENCY;
+	delay_freshness_checks_after_program_start = DEFAULT_DELAY_FRESHNESS_CHECKS_AFTER_PROGRAM_START;
 
 	debug_level = DEFAULT_DEBUG_LEVEL;
 	debug_verbosity = DEFAULT_DEBUG_VERBOSITY;

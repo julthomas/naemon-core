@@ -75,6 +75,7 @@
 #define DEFAULT_USE_LARGE_INSTALLATION_TWEAKS                   0       /* don't use tweaks for large Nagios installations */
 
 #define DEFAULT_ADDITIONAL_FRESHNESS_LATENCY			15	/* seconds to be added to freshness thresholds when automatically calculated by Nagios */
+#define DEFAULT_DELAY_FRESHNESS_CHECKS_AFTER_PROGRAM_START      600     /* ignore freshness checks during X seconds + check_interval after a start, 0 to disable */
 
 #define DEFAULT_CHECK_FOR_UPDATES                               1       /* should we check for new Nagios releases? */
 #define DEFAULT_BARE_UPDATE_CHECK                               0       /* report current version and new installs */

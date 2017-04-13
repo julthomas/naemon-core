@@ -1343,6 +1343,19 @@ int is_service_result_fresh(service *temp_service, time_t current_time, int log_
 	int tminutes = 0;
 	int tseconds = 0;
 
+	/* Option delay_freshness_checks_after_program_start allows to delay freshness checks for a certain
+	 * amount of time after program start. If the option has a value greater than 0, we ignore freshness
+	 * checks for check_interval + delay_freshness_checks_after_program_start seconds after the program
+	 * start time. */
+	if (delay_freshness_checks_after_program_start > 0 &&
+	    (current_time - program_start) < ((temp_service->check_interval * interval_length) +
+	                                      delay_freshness_checks_after_program_start)) {
+
+		log_debug_info(DEBUGL_CHECKS, 2, "Delaying freshness check of service '%s' on host '%s' because of recent program start\n",
+			temp_service->description, temp_service->host_name);
+		return TRUE;
+	}
+
 	log_debug_info(DEBUGL_CHECKS, 2, "Checking freshness of service '%s' on host '%s'...\n", temp_service->description, temp_service->host_name);
 
 	/* use user-supplied freshness threshold or auto-calculate a freshness threshold to use? */
@@ -1726,6 +1739,19 @@ int is_host_result_fresh(host *temp_host, time_t current_time, int log_this)
 	int tminutes = 0;
 	int tseconds = 0;
 	double interval = 0;
+
+	/* Option delay_freshness_checks_after_program_start allows to delay freshness checks for a certain
+	 * amount of time after program start. If the option has a value greater than 0, we ignore freshness
+	 * checks for check_interval + delay_freshness_checks_after_program_start seconds after the program
+	 * start time. */
+	if (delay_freshness_checks_after_program_start > 0 &&
+	    (current_time - program_start) < ((temp_host->check_interval * interval_length) +
+	                                      delay_freshness_checks_after_program_start)) {
+
+		log_debug_info(DEBUGL_CHECKS, 2, "Delaying freshness check of host '%s' because of recent program start\n",
+			temp_host->name);
+		return TRUE;
+	}
 
 	log_debug_info(DEBUGL_CHECKS, 2, "Checking freshness of host '%s'...\n", temp_host->name);
 

@@ -99,6 +99,7 @@ extern int check_service_freshness;
 extern int check_host_freshness;
 
 extern int additional_freshness_latency;
+extern int delay_freshness_checks_after_program_start;
 
 extern int check_for_updates;
 extern int bare_update_check;

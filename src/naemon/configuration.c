@@ -423,6 +423,9 @@ read_config_file(const char *main_config_file, nagios_macros *mac)
 		else if (!strcmp(variable, "additional_freshness_latency"))
 			additional_freshness_latency = atoi(value);
 
+		else if (!strcmp(variable, "delay_freshness_checks_after_program_start"))
+			delay_freshness_checks_after_program_start = atoi(value);
+
 		else if (!strcmp(variable, "retained_host_attribute_mask"))
 			retained_host_attribute_mask = strtoul(value, NULL, 0);
 
